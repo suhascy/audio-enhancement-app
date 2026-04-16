@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Enhancement Pro</title>
+
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #0f172a, #020617);
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 60px auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 40px;
+            background: linear-gradient(90deg, #6366f1, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        /* Drag & Drop Zone */
+        .drop-zone {
+            border: 2px dashed #6366f1;
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .drop-zone:hover {
+            background: rgba(99,102,241,0.1);
+        }
+
+        .drop-zone.dragover {
+            border-color: #22c55e;
+            background: rgba(34,197,94,0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #6366f1, #22c55e);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .wave-section {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .wave-box {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .wave {
+            margin-top: 15px;
+        }
+
+        .play-btn {
+            margin-top: 10px;
+            background: #1e293b;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: none;
+            margin: 20px auto;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.2);
+            border-top: 5px solid #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🎧 Audio Enhancement Pro</h1>
+    <p>Drag & drop your audio file or click to upload</p>
+
+    <div class="card">
+
+        <div class="drop-zone" id="dropZone">
+            Drag & Drop Audio Here OR Click to Select
+        </div>
+
+        <input type="file" id="fileInput" hidden>
+
+        <button onclick="uploadAudio()">Process Audio</button>
+
+        <div class="spinner" id="spinner"></div>
+
+        <div class="wave-section">
+
+            <div class="wave-box">
+                <h3>Original</h3>
+                <div id="waveformOriginal" class="wave"></div>
+                <button class="play-btn" onclick="playOriginal()">▶ Play</button>
+            </div>
+
+            <div class="wave-box">
+                <h3>Enhanced</h3>
+                <div id="waveformProcessed" class="wave"></div>
+                <button class="play-btn" onclick="playProcessed()">▶ Play</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    let selectedFile = null;
+    let originalWave, processedWave;
+
+    function initWaveSurfers() {
+        originalWave = WaveSurfer.create({
+            container: '#waveformOriginal',
+            waveColor: '#4ade80',
+            progressColor: '#22c55e',
+            height: 80
+        });
+
+        processedWave = WaveSurfer.create({
+            container: '#waveformProcessed',
+            waveColor: '#60a5fa',
+            progressColor: '#3b82f6',
+            height: 80
+        });
+    }
+
+    initWaveSurfers();
+
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+
+    // Click to open file picker
+    dropZone.onclick = () => fileInput.click();
+
+    fileInput.onchange = (e) => {
+        selectedFile = e.target.files[0];
+        loadOriginal();
+    };
+
+    // Drag events
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+
+        selectedFile = e.dataTransfer.files[0];
+        loadOriginal();
+    });
+
+    function loadOriginal() {
+        if (!selectedFile) return;
+
+        const url = URL.createObjectURL(selectedFile);
+        originalWave.load(url);
+    }
+
+    async function uploadAudio() {
+        if (!selectedFile) {
+            alert("Please select a file");
+            return;
+        }
+
+        document.getElementById("spinner").style.display = "block";
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        const response = await fetch("http://127.0.0.1:8000/process-audio/", {
+            method: "POST",
+            body: formData
+        });
+
+        const blob = await response.blob();
+        const processedURL = URL.createObjectURL(blob);
+
+        processedWave.load(processedURL);
+
+        document.getElementById("spinner").style.display = "none";
+    }
+
+    function playOriginal() {
+        originalWave.playPause();
+    }
+
+    function playProcessed() {
+        processedWave.playPause();
+    }
+</script>
+
+</body>
+</html>
