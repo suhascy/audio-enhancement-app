@@ -3,4 +3,5 @@ librosa
 noisereduce
 soundfile
 numpy
-uvicorn 
+uvicorn
+python-multipart
