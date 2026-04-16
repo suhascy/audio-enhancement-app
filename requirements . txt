@@ -1,0 +1,6 @@
+fastapi
+librosa
+noisereduce
+soundfile
+numpy
+uvicorn 
