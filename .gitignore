@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE files
+.idea/
+.vscode/
+
+# Generated audio
+input.wav
+output.wav
+final_output.wav
+*_output.wav
+
+# Local backup
+recording_original.m4a
+
+# Operating-system files
+.DS_Store
+Thumbs.db
