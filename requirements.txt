@@ -5,3 +5,4 @@ soundfile
 numpy
 uvicorn
 python-multipart
+scipy

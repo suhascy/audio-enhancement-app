@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Enhancement Pro</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #07101f;
+      --panel: #111d31;
+      --panel-deep: #0c1628;
+      --border: #22324b;
+      --text: #f4f7fb;
+      --muted: #91a4bf;
+      --blue: #5a82f1;
+      --green: #31c987;
+      --danger: #ff6b7a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 42px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 0%, rgba(60, 94, 190, 0.16), transparent 34%),
+        radial-gradient(circle at 90% 90%, rgba(35, 190, 130, 0.11), transparent 30%),
+        var(--page);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(920px, 100%);
+    }
+
+    .hero {
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3rem);
+      letter-spacing: -0.04em;
+      background: linear-gradient(90deg, #6d94ff, #37d28e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      color: var(--muted);
+    }
+
+    .card {
+      padding: 28px;
+      border: 1px solid rgba(115, 145, 190, 0.14);
+      border-radius: 24px;
+      background: rgba(17, 29, 49, 0.92);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .drop-zone {
+      min-height: 128px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 2px dashed #667cff;
+      border-radius: 18px;
+      background: rgba(94, 119, 214, 0.055);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .drop-zone:hover,
+    .drop-zone:focus-visible,
+    .drop-zone.dragover {
+      border-color: var(--green);
+      background: rgba(49, 201, 135, 0.08);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .drop-zone.busy {
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    .drop-icon {
+      font-size: 1.65rem;
+    }
+
+    .drop-title {
+      max-width: 100%;
+      overflow: hidden;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .drop-hint {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .controls {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 22px;
+      align-items: end;
+    }
+
+    .strength-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .strength-row output {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    .strength input {
+      margin-top: 12px;
+    }
+
+    .primary-button {
+      min-width: 170px;
+      padding: 13px 22px;
+      border: 0;
+      border-radius: 12px;
+      color: white;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(55, 154, 159, 0.2);
+      transition: transform 150ms ease, opacity 150ms ease;
+    }
+
+    .primary-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .primary-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+
+    .feedback {
+      min-height: 48px;
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .feedback.success {
+      color: #6be0aa;
+    }
+
+    .feedback.error {
+      color: #ff8c98;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      display: none;
+      flex: 0 0 auto;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .feedback.loading .spinner {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .players {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .player {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel-deep);
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.055);
+      font-size: 0.72rem;
+    }
+
+    canvas {
+      width: 100%;
+      height: 92px;
+      margin: 22px 0 15px;
+      display: block;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.018);
+    }
+
+    .seek {
+      margin: 0;
+    }
+
+    .player-footer {
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .play-button,
+    .download-link {
+      padding: 9px 14px;
+      border: 1px solid #2b3b57;
+      border-radius: 10px;
+      color: var(--text);
+      background: #18263d;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .play-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .time {
+      min-width: 82px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.8rem;
+      text-align: right;
+    }
+
+    .download-row {
+      margin-top: 18px;
+      display: none;
+      justify-content: center;
+    }
+
+    .download-row.visible {
+      display: flex;
+    }
+
+    .download-link {
+      border-color: rgba(49, 201, 135, 0.35);
+      color: #78e6b3;
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 24px 12px; }
+      .card { padding: 18px; border-radius: 18px; }
+      .controls,
+      .players { grid-template-columns: 1fr; }
+      .primary-button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1>&#127911; Audio Enhancement Pro</h1>
+      <p>Reduce background noise and improve voice clarity.</p>
+    </header>
+
+    <section class="card">
+      <input
+        id="fileInput"
+        type="file"
+        accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac"
+        hidden
+      >
+
+      <div
+        id="dropZone"
+        class="drop-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Select an audio file"
+      >
+        <div class="drop-icon">&#8682;</div>
+        <div id="dropTitle" class="drop-title">Drag &amp; drop audio here or click to select</div>
+        <div id="dropHint" class="drop-hint">WAV, MP3, M4A, OGG or FLAC</div>
+      </div>
+
+      <div class="controls">
+        <label class="strength" for="noiseSlider">
+          <span class="strength-row">
+            <span>Noise reduction strength</span>
+            <output id="noiseValue" for="noiseSlider">25</output>
+          </span>
+          <input id="noiseSlider" type="range" min="0" max="50" value="25">
+        </label>
+
+        <button id="processButton" class="primary-button" type="button" disabled>
+          Process Audio
+        </button>
+      </div>
+
+      <div id="feedback" class="feedback" role="status" aria-live="polite">
+        <span id="spinner" class="spinner" aria-hidden="true"></span>
+        <span id="statusText">Select an audio file to begin.</span>
+      </div>
+
+      <div class="players">
+        <article class="player">
+          <div class="player-header">
+            <h2>Original</h2>
+            <span class="badge">Before</span>
+          </div>
+          <canvas id="originalCanvas" width="600" height="184"></canvas>
+          <input id="originalSeek" class="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Original audio position">
+          <div class="player-footer">
+            <button id="originalPlay" class="play-button" type="button" disabled>&#9654; Play</button>
+            <span id="originalTime" class="time">0:00 / 0:00</span>
+          </div>
+          <audio id="originalAudio" preload="metadata"></audio>
+        </article>
+
+        <article class="player">
+          <div class="player-header">
+            <h2>Enhanced</h2>
+            <span class="badge">After</span>
+          </div>
+          <canvas id="enhancedCanvas" width="600" height="184"></canvas>
+          <input id="enhancedSeek" class="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Enhanced audio position">
+          <div class="player-footer">
+            <button id="enhancedPlay" class="play-button" type="button" disabled>&#9654; Play</button>
+            <span id="enhancedTime" class="time">0:00 / 0:00</span>
+          </div>
+          <audio id="enhancedAudio" preload="metadata"></audio>
+        </article>
+      </div>
+
+      <div id="downloadRow" class="download-row">
+        <a id="downloadLink" class="download-link" href="#" download="enhanced_audio.wav">
+          Download enhanced WAV
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const LOCAL_API_URL = "http://127.0.0.1:8000/process-audio/";
+    const DEPLOYED_API_URL = "https://audio-enhancement-app.onrender.com/process-audio/";
+    const localHostnames = new Set(["localhost", "127.0.0.1", ""]);
+    const API_URL = localHostnames.has(window.location.hostname)
+      ? LOCAL_API_URL
+      : DEPLOYED_API_URL;
+
+    const fileInput = document.getElementById("fileInput");
+    const dropZone = document.getElementById("dropZone");
+    const dropTitle = document.getElementById("dropTitle");
+    const dropHint = document.getElementById("dropHint");
+    const noiseSlider = document.getElementById("noiseSlider");
+    const noiseValue = document.getElementById("noiseValue");
+    const processButton = document.getElementById("processButton");
+    const feedback = document.getElementById("feedback");
+    const statusText = document.getElementById("statusText");
+    const downloadRow = document.getElementById("downloadRow");
+    const downloadLink = document.getElementById("downloadLink");
+
+    let selectedFile = null;
+    let originalUrl = null;
+    let enhancedUrl = null;
+
+    function makePlayer(prefix) {
+      const audio = document.getElementById(`${prefix}Audio`);
+      const play = document.getElementById(`${prefix}Play`);
+      const seek = document.getElementById(`${prefix}Seek`);
+      const time = document.getElementById(`${prefix}Time`);
+      const canvas = document.getElementById(`${prefix}Canvas`);
+
+      play.addEventListener("click", async () => {
+        if (!audio.src) return;
+
+        if (audio.paused) {
+          try {
+            await audio.play();
+          } catch (error) {
+            setStatus(`Playback failed: ${error.message}`, "error");
+          }
+        } else {
+          audio.pause();
+        }
+      });
+
+      audio.addEventListener("loadedmetadata", () => {
+        play.disabled = false;
+        seek.disabled = false;
+        updatePlayerTime(audio, seek, time);
+      });
+
+      audio.addEventListener("timeupdate", () => updatePlayerTime(audio, seek, time));
+      audio.addEventListener("play", () => { play.textContent = "Pause"; });
+      audio.addEventListener("pause", () => { play.textContent = "▶ Play"; });
+      audio.addEventListener("ended", () => { play.textContent = "▶ Play"; });
+
+      audio.addEventListener("error", () => {
+        play.disabled = true;
+        seek.disabled = true;
+        setStatus("The browser could not load this audio file.", "error");
+      });
+
+      seek.addEventListener("input", () => {
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          audio.currentTime = (Number(seek.value) / 1000) * audio.duration;
+        }
+      });
+
+      return { audio, play, seek, time, canvas };
+    }
+
+    const originalPlayer = makePlayer("original");
+    const enhancedPlayer = makePlayer("enhanced");
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+      const minutes = Math.floor(seconds / 60);
+      const remaining = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${remaining}`;
+    }
+
+    function updatePlayerTime(audio, seek, time) {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      const current = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+      seek.value = duration > 0 ? Math.round((current / duration) * 1000) : 0;
+      time.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+    }
+
+    function setStatus(message, type = "") {
+      feedback.className = `feedback${type ? ` ${type}` : ""}`;
+      statusText.textContent = message;
+    }
+
+    function setBusy(isBusy) {
+      processButton.disabled = isBusy || !selectedFile;
+      fileInput.disabled = isBusy;
+      dropZone.classList.toggle("busy", isBusy);
+      noiseSlider.disabled = isBusy;
+    }
+
+    function resetEnhancedPlayer() {
+      enhancedPlayer.audio.pause();
+      enhancedPlayer.audio.removeAttribute("src");
+      enhancedPlayer.audio.load();
+      enhancedPlayer.play.disabled = true;
+      enhancedPlayer.seek.disabled = true;
+      enhancedPlayer.seek.value = 0;
+      enhancedPlayer.time.textContent = "0:00 / 0:00";
+      clearCanvas(enhancedPlayer.canvas);
+      downloadRow.classList.remove("visible");
+
+      if (enhancedUrl) {
+        URL.revokeObjectURL(enhancedUrl);
+        enhancedUrl = null;
+      }
+    }
+
+    function clearCanvas(canvas) {
+      const context = canvas.getContext("2d");
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(145, 164, 191, 0.22)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(0, canvas.height / 2);
+      context.lineTo(canvas.width, canvas.height / 2);
+      context.stroke();
+    }
+
+    async function drawWaveform(blob, canvas, color) {
+      clearCanvas(canvas);
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+
+      const audioContext = new AudioContextClass();
+
+      try {
+        const bytes = await blob.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(bytes.slice(0));
+        const data = audioBuffer.getChannelData(0);
+        const context = canvas.getContext("2d");
+        const middle = canvas.height / 2;
+        const bars = Math.min(170, Math.max(60, Math.floor(canvas.clientWidth / 4)));
+        const blockSize = Math.max(1, Math.floor(data.length / bars));
+        const gap = 2;
+        const barWidth = canvas.width / bars;
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = color;
+
+        for (let index = 0; index < bars; index += 1) {
+          let peak = 0;
+          const start = index * blockSize;
+          const end = Math.min(start + blockSize, data.length);
+
+          for (let sample = start; sample < end; sample += 1) {
+            peak = Math.max(peak, Math.abs(data[sample]));
+          }
+
+          const height = Math.max(3, peak * canvas.height * 0.9);
+          const x = index * barWidth;
+          context.fillRect(x, middle - height / 2, Math.max(1, barWidth - gap), height);
+        }
+      } catch (error) {
+        console.warn("Waveform preview unavailable:", error);
+      } finally {
+        await audioContext.close();
+      }
+    }
+
+    async function selectFile(file) {
+      if (!file) return;
+
+      const extension = file.name.split(".").pop().toLowerCase();
+      const supportedExtensions = new Set(["wav", "mp3", "m4a", "ogg", "flac"]);
+
+      if (!file.type.startsWith("audio/") && !supportedExtensions.has(extension)) {
+        setStatus("Please select a supported audio file.", "error");
+        return;
+      }
+
+      selectedFile = file;
+      processButton.disabled = false;
+      dropTitle.textContent = `Selected: ${file.name}`;
+      dropHint.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      resetEnhancedPlayer();
+
+      originalPlayer.audio.pause();
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
+      originalUrl = URL.createObjectURL(file);
+      originalPlayer.audio.src = originalUrl;
+      originalPlayer.audio.load();
+      originalPlayer.play.disabled = true;
+      originalPlayer.seek.disabled = true;
+
+      setStatus("Loading the original audio...");
+      await drawWaveform(file, originalPlayer.canvas, "#5f86f3");
+      setStatus(`${file.name} is ready to process.`, "success");
+    }
+
+    async function processAudio() {
+      if (!selectedFile) {
+        setStatus("Please select an audio file first.", "error");
+        return;
+      }
+
+      setBusy(true);
+      setStatus("Reducing noise and enhancing the audio...", "loading");
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("noise", noiseSlider.value);
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { Accept: "audio/wav" },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const detail = (await response.text()).trim();
+          throw new Error(detail || `Server returned ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        if (blob.size <= 44) {
+          throw new Error("The server returned an empty audio file.");
+        }
+
+        resetEnhancedPlayer();
+        enhancedUrl = URL.createObjectURL(blob);
+        enhancedPlayer.audio.src = enhancedUrl;
+        enhancedPlayer.audio.load();
+        await drawWaveform(blob, enhancedPlayer.canvas, "#31c987");
+
+        downloadLink.href = enhancedUrl;
+        downloadLink.download = `${selectedFile.name.replace(/\.[^.]+$/, "")}_enhanced.wav`;
+        downloadRow.classList.add("visible");
+        setStatus("Enhancement complete. The result is ready to play.", "success");
+      } catch (error) {
+        console.error(error);
+        const localMessage = API_URL === LOCAL_API_URL
+          ? " Make sure Uvicorn is running on http://127.0.0.1:8000."
+          : " The deployed backend may be starting up; try again shortly.";
+        setStatus(`Processing failed: ${error.message}.${localMessage}`, "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    noiseSlider.addEventListener("input", () => {
+      noiseValue.textContent = noiseSlider.value;
+    });
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      selectFile(fileInput.files[0]);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("dragover");
+      });
+    });
+
+    dropZone.addEventListener("drop", (event) => {
+      selectFile(event.dataTransfer.files[0]);
+    });
+
+    processButton.addEventListener("click", processAudio);
+
+    window.addEventListener("beforeunload", () => {
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
+      if (enhancedUrl) URL.revokeObjectURL(enhancedUrl);
+    });
+
+    clearCanvas(originalPlayer.canvas);
+    clearCanvas(enhancedPlayer.canvas);
+  </script>
+</body>
+</html>
